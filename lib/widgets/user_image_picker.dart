@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -6,26 +5,37 @@ import 'package:image_picker/image_picker.dart';
 class UserImagePicker extends StatefulWidget {
   const UserImagePicker({super.key, required this.onPickedImage});
   final void Function(File image) onPickedImage;
-  State<UserImagePicker> createState() {
-    return _UserImagePickerState();
-  }
+
+  @override
+  State<UserImagePicker> createState() => _UserImagePickerState();
 }
 
 class _UserImagePickerState extends State<UserImagePicker> {
-  @override
   File? _pickedImage;
-  void _pickImage() async {
-    // Implement image picking logic here
-    // For example, using image_picker package
-    final pickedFile = await ImagePicker()
-        .pickImage(source: ImageSource.camera, imageQuality: 50, maxWidth: 150);
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 50,
+      maxWidth: 150,
+    );
+
+    if (pickedFile == null) {
+      return; // user canceled
+    }
+
     setState(() {
-      _pickedImage = File(pickedFile!.path);
+      _pickedImage = File(pickedFile.path);
     });
-    widget.onPickedImage(
-        _pickedImage!); // Notify parent widget with the picked image
+
+    // Debug print file path
+    print("Picked image path: ${pickedFile.path}");
+
+    // Pass image back to parent
+    widget.onPickedImage(_pickedImage!);
   }
 
+  @override
   Widget build(BuildContext context) {
     return Column(
       children: [
@@ -37,20 +47,12 @@ class _UserImagePickerState extends State<UserImagePicker> {
         ),
         const SizedBox(height: 10),
         ElevatedButton.icon(
-          onPressed: () {
-            _pickImage(); // Call the method to pick an image
-            // Implement image picking logic here
-          },
+          onPressed: _pickImage,
           icon: const Icon(Icons.image),
           label: const Text(
             'Pick Image',
-            style: TextStyle(
-              fontSize: 16, // Use the primary color from the current theme
-            ),
+            style: TextStyle(fontSize: 16),
           ),
-          // style: ElevatedButton.styleFrom(
-          //   primary: Colors.deepPurple, // Button color
-          // ),
         ),
       ],
     );

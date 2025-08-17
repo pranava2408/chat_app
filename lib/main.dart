@@ -4,13 +4,18 @@ import 'package:chat_app/screens/home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:chat_app/screens/chat_screen.dart';
-
+import 'package:firebase_app_check/firebase_app_check.dart';
+// import 'package:firebase_app_check_web/firebase_app_check_web.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // await FirebaseAppCheck.instance.activate(
+  //   androidProvider: AndroidProvider.safetyNet,
+  //   webProvider: ReCaptchaV3Provider('recaptcha-key'),
+  // );
   runApp(const MyApp());
 }
 
