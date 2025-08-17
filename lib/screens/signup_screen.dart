@@ -1,18 +1,27 @@
 import 'package:chat_app/widgets/custom_buttom.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:chat_app/widgets/user_image_picker.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_core/firebase_core.dart'; // Add this
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
 
-class SignupScreen extends StatelessWidget {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+class SignupScreen extends StatefulWidget { // Changed to StatefulWidget
+  SignupScreen({super.key});
 
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-      TextEditingController();
-
-  SignupScreen({super.key});
+  final TextEditingController confirmPasswordController = TextEditingController();
+  File? _pickedImage;
+  bool _isLoading = false; // Added loading state
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +40,12 @@ class SignupScreen extends StatelessWidget {
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  UserImagePicker(
+                    onPickedImage: (image) => _pickedImage = image,
+                  ),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: emailController,
                     decoration: const InputDecoration(labelText: 'Email'),
@@ -80,39 +93,79 @@ class SignupScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Center(
-                    child: CustomButtom(
-                      text: 'Sign Up',
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          // All validations passed
-                          print('Email: ${emailController.text.trim()}');
-                          print('Password: ${passwordController.text}');
-                          // Add your Firebase signup logic here
-                          try {
-                            final UserCredentials = await _auth
-                                .createUserWithEmailAndPassword(
-                              email: emailController.text.trim(),
-                              password: passwordController.text,
-                            )
-                                .then((userCredential) {
-                              // User created successfully
-                              print(
-                                  'User signed up: ${userCredential.user?.email}');
-                              // Navigate to home or another screen
-                            });
-                          }on FirebaseAuthException catch (e) {
-                            print('Error signing up: $e');
-                            // Handle error (e.g., show a dialog)
-                            ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(e.message ?? 'account associated with this email already exists'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                    ),
+                    child: _isLoading
+                        ? CircularProgressIndicator()
+                        : CustomButtom(
+                            text: 'Sign Up',
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate() && !_isLoading) {
+                                setState(() => _isLoading = true);
+                                
+                                try {
+                                  // Create user
+                                  final userCredential = await _auth.createUserWithEmailAndPassword(
+                                    email: emailController.text.trim(),
+                                    password: passwordController.text,
+                                  );
+                                  
+                                  // Upload image if exists
+                                  if (_pickedImage != null) {
+                                    try {
+                                      print('Picked image: ${_pickedImage!.path}');
+                                      
+                                      // FIXED: Use the correct reference format
+                                      final storageRef = FirebaseStorage.instance
+                                          .ref('user_images/${userCredential.user!.uid}.jpg');
+                                      
+                                      // Upload with proper error handling
+                                      final uploadTask = storageRef.putFile(_pickedImage!);
+                                      final snapshot = await uploadTask;
+                                      
+                                      // Verify upload completed
+                                      if (snapshot.state == TaskState.success) {
+                                        final imageUrl = await storageRef.getDownloadURL();
+                                        print('Image uploaded: $imageUrl');
+                                      } else {
+                                        print('Upload failed: ${snapshot.state}');
+                                        throw FirebaseException(
+                                          plugin: 'storage',
+                                          code: 'upload-failed',
+                                          message: 'Upload did not complete'
+                                        );
+                                      }
+                                    } catch (storageError) {
+                                      print('Image upload error: $storageError');
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed to upload profile image'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                  
+                                  // Navigate to home screen
+                                  // Navigator.pushReplacement(context, MaterialPageRoute(...));
+                                  
+                                } on FirebaseAuthException catch (e) {
+                                  print('Auth error: ${e.code} - ${e.message}');
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(e.message ?? 'Authentication failed'),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  print('General error: $e');
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('An unexpected error occurred'),
+                                    ),
+                                  );
+                                } finally {
+                                  setState(() => _isLoading = false);
+                                }
+                              }
+                            },
+                          ),
                   ),
                 ],
               ),

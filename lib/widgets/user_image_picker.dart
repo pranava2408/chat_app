@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
 class UserImagePicker extends StatefulWidget {
-  const UserImagePicker({super.key});
+  const UserImagePicker({super.key, required this.onPickedImage});
+  final void Function(File image) onPickedImage;
   State<UserImagePicker> createState() {
     return _UserImagePickerState();
   }
@@ -21,6 +22,8 @@ class _UserImagePickerState extends State<UserImagePicker> {
     setState(() {
       _pickedImage = File(pickedFile!.path);
     });
+    widget.onPickedImage(
+        _pickedImage!); // Notify parent widget with the picked image
   }
 
   Widget build(BuildContext context) {
