@@ -23,16 +23,16 @@ class ChatScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          children: [
-            Expanded(child: ChatMessages()),
-            // SizedBox(height: 20),
-            // SizedBox(height: double.infinity),
-            // const Spacer(),
-            Expanded(child: MessageSender()),
-          ],
-        ),
+      body: Column(
+        children: [
+          Expanded(
+              child: ChatMessages(
+                  currentUserId: _auth.currentUser!.uid.toString())),
+          // SizedBox(height: 20),
+          // SizedBox(height: double.infinity),
+          // const Spacer(),
+          Expanded(child: MessageSender()),
+        ],
       ),
     );
   }
